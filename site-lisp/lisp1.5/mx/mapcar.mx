@@ -1,0 +1,6 @@
+#(use LISP1.5.mexpr)
+
+#!m-expr
+
+mapcar[fn;x] = [null[x] -> NIL;
+                T -> cons[fn[car[x]];mapcar[fn;cdr[x]]]]

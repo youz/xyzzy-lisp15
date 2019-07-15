@@ -1,0 +1,59 @@
+#;; -*- coding:utf-8 -*-
+#;;;
+#;;; EVAL with global envirnoment and LISP1.5 symbols
+#;;;
+
+#(use LISP1.5.mexpr)
+#(use LISP1.5.runtime)
+
+#;; We load eval.mx first, then overwrite apply and eval.
+#(load "mx/eval.mx")
+
+#!m-expr
+
+# assoc with error check
+sassoc[x;a;thunk] =
+  [null[a] → thunk[];
+   equal[caar[a];x] → car[a];
+   T → sassoc[x;cdr[a];thunk]]
+
+# Search a key Y in plist X and returns the corresponding value
+# If not found, returns NIL.
+get[x;y] =
+  [null[x] → NIL;
+   eq[car[x];y] → cadr[x];
+   T → get[cdr[x];y]]
+
+#
+# Apply and Eval
+#
+
+apply[fn;args;a] =
+  [null[fn] → NIL;
+   atom[fn] → [get[fn;EXPR] ⇒ λ[[e];apply[e;args;a]];
+                get[fn;SUBR] ⇒ λ[[s];callsubr[s;args]];
+                T → apply[cdr[sassoc[fn;a;λ[[];error[A2]]]];args;a]];
+   eq[car[fn];LABEL] → apply[caddr[fn];args;cons[cons[cadr[fn];caddr[fn]];a]];
+   eq[car[fn];FUNARG] → apply[cadr[fn];args;caddr[fn]];
+   eq[car[fn];LAMBDA] → eval[caddr[fn];pairlis[cadr[fn];args;a]];
+   T → apply[eval[fn;a];args;a]]
+
+eval[form;a] =
+  [null[form] → NIL;
+   atom[form] → [get[form;APVAL] ⇒ λ[[v];car[v]];
+                  T → cdr[sassoc[form;a;λ[[];error[A8]]]]];
+   eq[car[form];QUOTE] → cadr[form];
+   eq[car[form];FUNCTION] → cons[FUNARG;cons[cadr[form];cons[a;NIL]]];
+   eq[car[form];COND] → evcon[cdr[form];a];
+   atom[car[form]] → [get[car[form];EXPR]
+                         ⇒ λ[[e];apply[e;evlis[cdr[form];a];a]];
+                       get[car[form];FEXPR]
+                         ⇒ λ[[f];apply[f;cons[cdr[form];cons[a;NIL]];a]];
+                       get[car[form];SUBR]
+                         ⇒ λ[[s];callsubr[s;evlis[cdr[form];a]]];
+                       get[car[form];FSUBR]
+                         ⇒ λ[[f];callsubr[f;cons[cdr[form];cons[a;NIL]]]];
+                       T → eval[cons[cdr[sassoc[car[form];a;λ[[];error[A9]]]];
+                                     cdr[form]];
+                                a]];
+   T → apply[car[form];evlis[cdr[form];a];a]]
