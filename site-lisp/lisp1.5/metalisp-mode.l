@@ -1,20 +1,30 @@
-(defpackage :lisp15.metalisp-mode
+(defpackage :metalisp-mode
   (:use :lisp :editor))
 
-(in-package :lisp15.metalisp-mode)
+(in-package :metalisp-mode)
 
 (defparameter *metalisp-syntax-table*
   (let ((tbl (make-syntax-table)))
-    (copy-syntax-table ed::*lisp-mode-syntax-table* tbl)
-    (set-syntax-punctuation tbl #\;)
+    (do ((x #x21 (1+ x)))((>= x #x7f))
+      (let ((c (code-char x)))
+	(unless (alphanumericp c)
+	  (set-syntax-punctuation tbl c))))
+    (set-syntax-whitespace tbl #\SPC)
+    (set-syntax-whitespace tbl #\TAB)
+    (set-syntax-whitespace tbl #\RET)
+    (set-syntax-match tbl #\( #\))
     (set-syntax-match tbl #\[ #\])
     (set-syntax-start-comment tbl #\#)
+    (set-syntax-end-comment tbl #\LFD)
+    (set-syntax-symbol tbl #\-)
+    (set-syntax-symbol tbl #\=)
+    (set-syntax-symbol tbl #\>)
     tbl))
 
 (defparameter *metalisp-keyword-list*
   (compile-regexp-keyword-list
-   '(("car\\|cdr\\|cons\\|eq\\|atom\\|lambda\\|label" nil (:keyword 0))
-     ("T\\|F\\|NIL" nil (:keyword 1))
+   '(("\\b\\(car\\|cdr\\|cons\\|eq\\|atom\\|lambda\\|label\\)\\b" nil (:keyword 0))
+     ("\\b\\(T\\|F\\|NIL\\)\\b" nil (:keyword 2))
      ("[]()[]" nil (:color 14)))))
 
 (defun ed::metalisp-mode ()
@@ -29,4 +39,4 @@
   (use-keymap ed::*lisp-mode-map*)
   (use-syntax-table *metalisp-syntax-table*))
 
-(provide "lisp15/metalisp-mode")
+(provide "lisp1.5/metalisp-mode")
