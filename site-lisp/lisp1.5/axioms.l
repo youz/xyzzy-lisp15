@@ -1,13 +1,16 @@
 ;;; -*- mode:lisp; package:lisp1.5.axioms -*-
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (unless (find-package :lisp1.5)
-    (require "lisp1.5")))
-
 (defpackage :lisp1.5.axioms
-  (:use :lisp :lisp1.5))
+  (:use :lisp)
+  (:export #:CAR #:CDR #:CONS #:COND #:EQ #:ATOM #:QUOTE
+           #:T #:F #:NIL
+           #:$TOPLEVELS #:$= #:-> #:=>))
 
 (in-package :lisp1.5.axioms)
+
+(defvar T 'T)
+(defvar F 'F)
+(defvar NIL 'NIL)
 
 (defun CAR (x) (if (null (car x)) 'NIL (car x)))
 (defun CDR (x) (if (null (cdr x)) 'NIL (cdr x)))
@@ -21,7 +24,7 @@
   (let* ((c (car clauses))
 	 (gtest (gensym "test"))
 	 (test (car c))
-	 (expr (if (and (eq 'lisp1.5::=> (cadr c)) (cddr c))
+	 (expr (if (and (eq '=> (cadr c)) (cddr c))
 		   `(,(caddr c) ,test)
 		 (cadr c))))
     `(let ((,gtest ,test))
@@ -33,7 +36,7 @@
 
 (defmacro $TOPLEVELS (&body forms)
   `(progn ,@(mapcar #'(lambda (expr)
-			(if (and (consp expr) (eq (car expr) 'lisp1.5::$=))
+			(if (and (consp expr) (eq (car expr) '$=))
 			    `(defun ,(caadr expr) ,(cdadr expr) ,(caddr expr))
 			  expr))
 		    forms)))

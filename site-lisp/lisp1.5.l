@@ -1,14 +1,17 @@
 
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require "lisp1.5/axioms")
+  ;(require "lisp1.5/runtime")
+  )
+
 (defpackage :lisp1.5
-  (:use :lisp)
-  (:export :$TOPLEVELS
-           :CAR :CDR :CONS :ATOM :QUOTE :EQ :COND :LAMBDA
-           :T :F :NIL))
+  (:use :lisp :lisp1.5.axioms)
+  (:export #:CAR #:CDR #:CONS #:COND #:EQ #:ATOM #:QUOTE
+           #:T #:F #:NIL
+           #:LAMBDA #:LABEL
+           #:$TOPLEVELS #:$= #:-> #:=>))
 
 (require "lisp1.5/mexpr")
-(require "lisp1.5/axioms")
-;(require "lisp1.5/runtime")
-
-
 
 (provide "lisp1.5")

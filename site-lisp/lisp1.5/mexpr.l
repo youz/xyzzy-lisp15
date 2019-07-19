@@ -2,15 +2,13 @@
 ;;; M-expression parser (for xyzzy)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (require "ansi-loop")
-  (unless (find-package :lisp1.5)
-    (require "lisp1.5")))
+  (require "ansi-loop"))
 
 (defpackage :lisp1.5.mexpr
-  (:use :lisp :lisp1.5))
+  (:use :lisp :lisp1.5)
+  (:export #:parse #:parse-buffer))
 
 (in-package :lisp1.5.mexpr)
-(export '(parse parse-buffer))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (shadowing-import '(ansi-loop:loop ansi-loop:loop-finish)))
@@ -19,8 +17,8 @@
 (defconstant *separator* (make-symbol "colon"))
 (defconstant *bracket* (make-symbol "[]"))
 (defconstant *eof* (make-symbol "eof"))
-(defvar *sym-lambda* 'lisp1.5::|lambda|) ; equal 'lisp:lambda in xyzzy
-(defvar *sym-label*  'lisp1.5::|label|)
+(defconstant *sym-lambda* 'lisp1.5::|lambda|) ; equal 'lisp:lambda in xyzzy
+(defconstant *sym-label*  'lisp1.5::|label|)
 
 (defun bracket-reader (s c)
   (let ((*readtable* *ripping-table*))
@@ -90,12 +88,12 @@
     (loop while l
       do (multiple-value-bind (test r) (parse-expr l)
 	   (let ((arrow (car r)))
-	     (unless (find arrow '(lisp1.5::-> lisp1.5::=>))
+	     (unless (find arrow '(-> =>))
 	       (error "invalid cond clause: ~S ~S ..." test arrow))
 	     (multiple-value-bind (expr r) (parse-expr (cdr r))
 	       (case arrow
-		 (lisp1.5::-> (push (list test expr) clauses))
-		 (lisp1.5::=> (push (list test 'lisp1.5::=> expr) clauses)))
+		 (-> (push (list test expr) clauses))
+		 (=> (push (list test '=> expr) clauses)))
 	       (unless (or (null r) (eq *separator* (car r)))
 		 (error "invalid cond form: [~{~A~^ ~}]" (cdr bracket-list)))
 	       (setq l (cdr r))))))
@@ -142,12 +140,12 @@
 	   (cond ((eq (second input) '=)
 		  (let ((left (read-sym top)))
 		    (multiple-value-bind (v rest) (parse-expr (cddr input))
-		      (values `(lisp1.5::$= ,left ,v) rest))))
+		      (values `($= ,left ,v) rest))))
 		 ((and (bracket-list-p (second input)) (eq (third input) '=))
 		  (let* ((param (read-args (second input)))
 			 (left (cons (read-sym top) param)))
 		    (multiple-value-bind (v rest) (parse-expr (cdddr input))
-		      (values `(lisp1.5::$= ,left ,v) rest))))
+		      (values `($= ,left ,v) rest))))
 		 (t (parse-expr input))))
 	   (t (parse-expr input)))))
 
@@ -155,28 +153,28 @@
 (defun rip (s)
   (unless *ripping-table*
     (init-ripping-table))
-  (let ((*readtable* *ripping-table*)
-	(*package* (find-package :lisp1.5)))
+  (let ((*readtable* *ripping-table*))
     (loop for e = (read s nil *eof*)
       while (not (eq e *eof*))
-      collect (sublis `((lisp1.5::Å® . lisp1.5::->)
-			(lisp1.5::ÅÀ . lisp1.5::=>)
+      collect (sublis `((lisp1.5::Å® . ->)
+			(lisp1.5::ÅÀ . =>)
 			(lisp1.5::É… . ,*sym-lambda*))
 		      e))))
 
-(defun parse (str &optional pkg)
-  (let* ((s (if (streamp str) str (make-string-input-stream str)))
-	 (input (rip s))
-	 (acc (list '$TOPLEVELS)))
+(defun parse (str)
+  (let ((*package* (find-package :lisp1.5))
+	(s (if (streamp str) str (make-string-input-stream str)))
+	(acc (list '$TOPLEVELS)))
     (loop
-      while input
-      do (multiple-value-bind (e r) (parse-toplevel input)
-	   (push e acc)
-	   (setq input r)))
+      for input = (rip s)
+      then (multiple-value-bind (e r) (parse-toplevel input)
+	     (push e acc)
+	     r)
+      while input)
     (nreverse acc)))
 
-(defun parse-buffer (buf &optional pkg)
+(defun parse-buffer (buf)
   (ed:with-input-from-buffer (buf)
-    (parse *standard-input* pkg)))
+    (parse *standard-input*)))
 
 (provide "lisp1.5/mexpr")
